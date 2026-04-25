@@ -14,4 +14,4 @@ with open(IMG_PATH, "wb") as f:
     f.write(boot_sector)
     f.write(b"\x00" * (FLOPPY_SIZE - BOOT_SECTOR_SIZE))
 
-print("georgeos.img created successfully")
+print("accidentalos.img created successfully")
