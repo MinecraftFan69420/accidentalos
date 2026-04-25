@@ -1,5 +1,3 @@
-import os
-
 BOOT_SECTOR_SIZE = 512
 FLOPPY_SIZE = 1474560  # 1.44 MB
 
