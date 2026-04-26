@@ -258,7 +258,7 @@ scroll_up: ; scroll up when cursor reaches bottom line
 
     RET
 
-msg: db "Starting AccidentalOS...", 10, "Ready."
+msg: db "Starting AccidentalOS...", 10, "Ready.", 0
 ; test string with newline and carriage return
 error_msg: db "Error, shutdown.", 0
 input_buffer: times 17 db 0 ; 16 chars + end null
