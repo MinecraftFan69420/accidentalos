@@ -16,7 +16,7 @@
 ; 1. assemble with "nasm -f bin kernel.s -o kernel.bin"
 ; 2. run the floppifyer "floppifyer.py"
 ; 3. emulate with QEMU
-; qemu-system-i386.exe -drive if=floppy,format=raw,file=georgeos.img -no-reboot -boot a
+; qemu-system-i386.exe -drive if=floppy,format=raw,file=accidentalos.img -no-reboot -boot a
 ; i know the command might be long but its probably ok
 
 BITS 16                          ; 16-bit real mode
