@@ -156,7 +156,6 @@ shutdown: ; done - shutdown
 
 print_char: ; print a character in al
     PUSH es
-
     PUSH ax
 
     MOV ax, 0xB800

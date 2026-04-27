@@ -1,0 +1,23 @@
+00000
+system memory
+004FF
+00500
+data segment
+07BFF
+07C00
+boot
+07E00
+unused
+07FFF
+08000
+code
+8FFFF
+90000
+stack
+9FFFF
+A0000
+VGA memory
+BFFFF
+C0000
+unknown
+FFFFF
