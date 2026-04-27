@@ -35,27 +35,20 @@ start:
     CMP ax, 0x9000
     JNE .L12
 
-    MOV ax, cs                  ; set code segment to data segment
+    MOV ax, cs
     MOV ds, ax
 
     MOV ax, 3                   ; set text mode
     INT 0x10                    ; VGA interrupt
 
-    MOV ax, 0xB800
+    MOV ax, ds
     MOV es, ax
-
-    MOV ax, es
-    CMP ax, 0xB800
-    JNE error
 
     XOR di, di                  ; Start at offset 0
 
     MOV ah, 0x0F                ; White text on black background
-    MOV si, msg                 ; Load message address
+    MOV si, boot_msg            ; Load message address
 .L2:
-    CMP si, msg + 256 ; if it goes too far into memory (most likely due to losing 0x00 terminator)
-    JA error
-
     LODSB                       ; Load byte from [si] into al, equivalent to mov al, [si]; inc si
     TEST al, al                 
     JZ terminalloop             ; end print loop on null
@@ -161,10 +154,21 @@ shutdown: ; done - shutdown
 
 ; HELPERS
 
-print_char: ; print a character (warning: uses ax)
+print_char: ; print a character in al
+    PUSH es
+
+    PUSH ax
+
+    MOV ax, 0xB800
+    MOV es, ax
+
+    POP ax
+
     MOV ah, 0x0F
-    MOV [es:di], ax
-    ADD di, 2    
+    MOV WORD [es:di], ax
+    ADD di, 2
+
+    POP es    
 
     ; update cursor
     MOV ax, di
@@ -258,7 +262,7 @@ scroll_up: ; scroll up when cursor reaches bottom line
 
     RET
 
-msg: db "Starting AccidentalOS...", 10, "Ready.", 0
+boot_msg: db "Starting AccidentalOS...", 10, "Ready.", 10, 0
 ; test string with newline and carriage return
 error_msg: db "Error, shutdown.", 0
 input_buffer: times 17 db 0 ; 16 chars + end null
