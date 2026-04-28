@@ -2,6 +2,9 @@
 system memory
 004FF
 00500
+padding
+00FFF
+01000
 data segment
 07BFF
 07C00
