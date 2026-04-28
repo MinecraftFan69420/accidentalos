@@ -147,6 +147,29 @@ terminalloop:
     CALL backspace
     JMP .L5
 
+stage2_load:
+    MOV ah, 2 ; request: read sectors and store in memory
+    MOV al, 8 ; read 8 sectors = 4096 B
+    XOR dl, dl ; choose drive A - the floppy
+    ; load code from sector 33 - C0H1S1 in CHS
+    XOR ch, ch ; cylinder
+    MOV cl, 16 ; sector
+    MOV dh, 1 ; head
+
+    MOV ax, 0x800
+    MOV es, ax
+    XOR bx, bx
+
+    INT 0x13
+
+    JC .L13 ; carry flag means an error happened
+
+    JMP 0x0800:0x0000
+.L13:
+    CLI
+    HLT
+    JMP .L13
+
 shutdown: ; done - shutdown
     CLI                         ; Clear interrupts so it stays paused
     HLT                         ; Halt CPU
