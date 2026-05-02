@@ -1,4 +1,4 @@
-; AccidentalOS
+; AccidentalOS - boot sector
 ; made by me with a __little__ help from Microsoft Copilot
 ; so don't think Copilot created the whole thing
 ; just helped me with fixing bugs and adding a few code snippets
@@ -13,9 +13,10 @@
 ; and if you do then star it
 
 ; usage instructions:
-; 1. assemble with "nasm -f bin kernel.s -o kernel.bin"
-; 2. run the floppifyer "floppifyer.py"
-; 3. emulate with QEMU
+; 1. assemble the boot with "nasm -f bin boot.s -o boot.bin"
+; 2. assemble the kernel with "nasm -f bin kernel.s -o kernel.bin"
+; 3. run the floppifyer "floppifyer.py"
+; 4. emulate with QEMU
 ; qemu-system-i386.exe -drive if=floppy,format=raw,file=accidentalos.img -no-reboot -boot a
 ; i know the command might be long but its probably ok
 
@@ -33,142 +34,59 @@ start:
 
     MOV ax, ss
     CMP ax, 0x9000
-    JNE .L12
+;    JNE .L4
 
     MOV ax, cs
-    MOV ds, ax
+    MOV ds, ax ; temporarily ds = cs
+    MOV es, ax ; same for es
 
     MOV ax, 3                   ; set text mode
     INT 0x10                    ; VGA interrupt
 
-    MOV ax, ds
-    MOV es, ax
-
     XOR di, di                  ; Start at offset 0
 
-    MOV ah, 0x0F                ; White text on black background
     MOV si, boot_msg            ; Load message address
 .L2:
-    LODSB                       ; Load byte from [si] into al, equivalent to mov al, [si]; inc si
+    LODSB ; MOV al, [ds:si], si++
     TEST al, al                 
-    JZ terminalloop             ; end print loop on null
+    JZ stage2_load              ; end print loop on null
 
     CMP al, NEWLINE             ; newline
     JE .L3
-    CMP al, CR                  ; CR
-    JE .L4
 
+    MOV ah, 0x0F                ; Set attribute for every char
     CALL print_char
     JMP .L2
 .L3: ; newline
     CALL newline
     JMP .L2 ; continue on with the print loop
-.L4: ; carriage return
-    CALL carriage_return
-    JMP .L2
-.L12: ; error pre-VGA because Jcc error doesnt work then
+.L4: ; error pre-VGA because Jcc error doesnt work then
     CLI
     HLT
-    JMP .L12
-
-terminalloop:
-    MOV BYTE [input_len], 0
-
-    ; print prompt "> "
-    MOV al, '>'
-    CALL print_char
-    MOV al, ' '
-    CALL print_char
-.L5:
-    XOR ah, ah
-    INT 0x16            ; wait for key
-    ; AL = ASCII, AH = scan code
-
-    ; if key input fails then error
-    TEST al, al
-    JNZ .L11
-    TEST ah, ah
-    JNZ .L11
-    CALL error
-.L11:
-    ; enter
-    CMP al, CR
-    JE .L6
-
-    ; backspace
-    CMP al, BACKSPACE        ; Backspace?
-    JE .L7
-    CMP ah, 0x0E
-    JE .L7
-
-    ; normal character
-    CMP al, 0x20
-    JB .L5
-
-    ; normal
-    MOV bl, [input_len]
-    CMP bl, 16
-    JA error
-    JAE .L5
-
-    XOR bh, bh
-    CMP bx, 16 ; over 16 chars entered - due to buffer limit not working
-    JA error
-
-    MOV BYTE [input_buffer + bx], al
-    INC bl
-    MOV [input_len], bl
-
-    ; echo character
-    CALL print_char ; al already set
-    JMP .L5
-
-.L6:
-    MOV bl, [input_len]
-    XOR bh, bh
-    MOV BYTE [input_buffer + bx], 0
-
-    CALL newline
-    JMP terminalloop
-.L7:
-    MOV bl, [input_len]
-    CMP bl, 0
-    JE .L5 ; nothing to delete
-
-    MOV ax, di
-    SUB ax, 4 ; subtract VGA memory pointer to go back a character
-    JB error ; model/view mismatch
-    JBE .L5
-
-    DEC bl
-    MOV BYTE [input_len], bl
-    XOR bh, bh
-    MOV BYTE [input_buffer + bx], 0
-    CALL backspace
-    JMP .L5
+    JMP .L4
 
 stage2_load:
+    MOV ax, 0x800
+    MOV es, ax
+    XOR bx, bx
+
     MOV ah, 2 ; request: read sectors and store in memory
-    MOV al, 8 ; read 8 sectors = 4096 B
+    MOV al, 1 ; read 1 sector = 512 B
     XOR dl, dl ; choose drive A - the floppy
     ; load code from sector 33 - C0H1S1 in CHS
     XOR ch, ch ; cylinder
     MOV cl, 16 ; sector
     MOV dh, 1 ; head
 
-    MOV ax, 0x800
-    MOV es, ax
-    XOR bx, bx
-
     INT 0x13
 
-    JC .L13 ; carry flag means an error happened
+    JC .L5 ; carry flag means an error happened
 
     JMP 0x0800:0x0000
-.L13:
+.L5:
     CLI
     HLT
-    JMP .L13
+    JMP .L5
 
 shutdown: ; done - shutdown
     CLI                         ; Clear interrupts so it stays paused
@@ -193,6 +111,7 @@ print_char: ; print a character in al
     POP es    
 
     ; update cursor
+    PUSH ax
     MOV ax, di
     SHR ax, 1          ; byte offset -> character index
     ; div by 80
@@ -205,6 +124,7 @@ print_char: ; print a character in al
     MOV dh, al         ; row
     MOV dl, dl         ; column (DL = DX low byte)
     INT 0x10
+    POP ax
     RET
 newline: ; move to a new line (warning: destroy ax)
     MOV ax, di
@@ -215,80 +135,8 @@ newline: ; move to a new line (warning: destroy ax)
     SUB di, dx
     ADD di, 160
 
-    CMP di, 160 * 25 ; past the screen?
-    JAE .L13
-
     RET
-.L13: ; if last line
-    CALL scroll_up
-    RET
-carriage_return: ; move to the start of the line (warning: destroy ax)
-    MOV ax, di
-    XOR dx, dx
-    MOV cx, 160
-    DIV cx              ; DX = column, AX = row
-
-    SUB di, dx
-
-    RET
-backspace:
-    ; Check if we're at the start of video memory
-    CMP di, 2
-    JBE .L8     ; can't backspace past start
-
-    SUB di, 2
-    MOV WORD [es:di], 0x0F20
-
-    MOV ax, di
-    SHR ax, 1          ; byte offset -> character index
-    XOR dx, dx
-    MOV bx, 80
-    DIV bx             ; AX = row, DX = column
-
-    MOV ah, 0x02       ; request: update cursor
-    XOR bh, bh
-    MOV dh, al         ; row
-    MOV dl, dl         ; column (DL = DX low byte)
-    INT 0x10
-.L8:
-    RET
-
-error:
-    MOV si, error_msg
-.L9:
-    LODSB ; get next char
-    TEST al, al ; finished?
-    JZ .L10 ; crash
-
-    CALL print_char
-    JMP .L9
-.L10: ; WOOHOOOOO 10 LOCAL LABELS!!
-    UD2
-scroll_up: ; scroll up when cursor reaches bottom line
-    PUSH si
-    PUSH di
-
-    MOV si, 160 ; line 2
-    XOR di, di
-    MOV cx, 80 * 24
-    REP MOVSW
-
-    MOV ax, 0x0F20 ; ' ' with white on black
-    MOV cx, 80 ; do this 80 times
-    REP STOSW
-
-    MOV di, 160 * 24 ; start of last line
-
-    POP di
-    POP si
-
-    RET
-
-boot_msg: db "Starting AccidentalOS...", 10, "Ready.", 10, 0
-; test string with newline and carriage return
-error_msg: db "Error, shutdown.", 0
-input_buffer: times 17 db 0 ; 16 chars + end null
-input_len: db 0
+boot_msg: db "Starting AccidentalOS...", 10, "Going to kernel...", 10, 0
 
 ; constants
 BACKSPACE: equ 0x08
