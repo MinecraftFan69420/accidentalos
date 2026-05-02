@@ -228,7 +228,10 @@ error:
     CALL print_char
     JMP .L9
 .L10: ; WOOHOOOOO 10 LOCAL LABELS!!
-    UD2
+    CLI
+.L12:
+    HLT
+    JMP .L12
 scroll_up: ; scroll up when cursor reaches bottom line
     PUSH si
     PUSH di
