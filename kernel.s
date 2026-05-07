@@ -89,14 +89,10 @@ terminal_loop:
     JB .L5
 
     ; normal
+    XOR bh, bh
     MOV bl, [input_len]
     CMP bl, 16
-    JA error
     JAE .L5
-
-    XOR bh, bh
-    CMP bx, 16 ; over 16 chars entered - due to buffer limit not working
-    JA error
 
     MOV BYTE [input_buffer + bx], al
     INC bl
@@ -201,6 +197,11 @@ backspace:
     CMP di, 2
     JBE .L8     ; can't backspace past start
 
+    PUSH es
+
+    MOV ax, 0xB800
+    MOV es, ax
+
     SUB di, 2
     MOV WORD [es:di], 0x0F20
 
@@ -213,9 +214,10 @@ backspace:
     MOV ah, 0x02       ; request: update cursor
     XOR bh, bh
     MOV dh, al         ; row
-    MOV dl, dl         ; column (DL = DX low byte)
+    ; dl contains the column
     INT 0x10
 .L8:
+    POP es
     RET
 
 error:
@@ -234,7 +236,6 @@ error:
     JMP .L12
 scroll_up: ; scroll up when cursor reaches bottom line
     PUSH si
-    PUSH di
 
     MOV si, 160 ; line 2
     XOR di, di
@@ -247,7 +248,6 @@ scroll_up: ; scroll up when cursor reaches bottom line
 
     MOV di, 160 * 24 ; start of last line
 
-    POP di
     POP si
 
     RET
