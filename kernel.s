@@ -27,12 +27,12 @@ stage2_start:
     MOV ds, ax
     MOV es, ax
 
-    MOV ax, 0x9000 ; stack at 0x90000
+    MOV ax, STACK_SEG ; stack at 0x90000
     MOV ss, ax
     MOV sp, 0xFFFF ; top at 0x9FFFF
 
     MOV ax, ss
-    CMP ax, 0x9000
+    CMP ax, STACK_SEG
     JNE error
 
     STI
@@ -137,7 +137,7 @@ print_char: ; print a character in al
     PUSH es
     PUSH ax
 
-    MOV ax, 0xB800
+    MOV ax, VGA_MEM_START
     MOV es, ax
 
     POP ax
@@ -262,3 +262,5 @@ input_len: db 0
 BACKSPACE: equ 0x08
 NEWLINE: equ 0x0A
 CR: equ 0x0D
+STACK_SEG: equ 0x9000
+VGA_MEM_START: equ 0xB800

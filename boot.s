@@ -26,15 +26,11 @@ ORG 0x7C00                       ; bootloader
 ; THE REAL KERNEL
 start:
     CLI                         ; disable interrupts
-    MOV ax, 0x9000              ; stack at 0x90000
+    MOV ax, STACK_SEG           ; stack at 0x90000
     MOV ss, ax
     MOV sp, 0xFFFF              ; top at 0x9FFFF
     CLD
     STI
-
-    MOV ax, ss
-    CMP ax, 0x9000
-;    JNE .L4
 
     MOV ax, cs
     MOV ds, ax ; temporarily ds = cs
@@ -99,7 +95,7 @@ print_char: ; print a character in al
     PUSH es
     PUSH ax
 
-    MOV ax, 0xB800
+    MOV ax, VGA_MEM_START
     MOV es, ax
 
     POP ax
@@ -142,6 +138,8 @@ boot_msg: db "Starting AccidentalOS...", 10, "Going to kernel...", 10, 0
 BACKSPACE: equ 0x08
 NEWLINE: equ 0x0A
 CR: equ 0x0D
+STACK_SEG: equ 0x9000
+VGA_MEM_START: equ 0xB800
 
 times 510 - ($ - $$) db 0       ; Pad to 510 bytes
 dw 0xAA55                       ; Boot signature - must have
