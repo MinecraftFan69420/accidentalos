@@ -199,7 +199,7 @@ backspace:
 
     PUSH es
 
-    MOV ax, 0xB800
+    MOV ax, VGA_MEM_START
     MOV es, ax
 
     SUB di, 2
