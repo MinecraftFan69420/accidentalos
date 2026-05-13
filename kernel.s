@@ -84,7 +84,7 @@ terminal_loop:
     CMP ah, 0x0E
     JE .L7
 
-    ; normal character
+    ; fail on other unsupported characters
     CMP al, 0x20
     JB .L5
 
