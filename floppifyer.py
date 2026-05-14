@@ -2,6 +2,7 @@ BOOT_SECTOR_SIZE = 512
 FLOPPY_SIZE = 1474560  # 1.44 MB
 
 BOOT_PATH = r"boot.bin"
+DEFAULT_HEADER_PATH = r"defaultheader.bin"
 KERNEL_PATH = r"kernel.bin"
 IMG_PATH    = r"accidentalos.img"
 
@@ -11,12 +12,16 @@ with open(BOOT_PATH, "rb") as b:
 with open(KERNEL_PATH, "rb") as k:
     kernel = k.read()
 
+with open(DEFAULT_HEADER_PATH, "rb") as h:
+    default_header = h.read()
+
 if len(boot_sector) != BOOT_SECTOR_SIZE:
     raise ValueError(f"Boot sector must be exactly 512 bytes (got {len(boot_sector)})")
 
 with open(IMG_PATH, "wb") as f:
     f.write(boot_sector)
-    f.write(b"\x00" * (32 * 512))
+    f.write(default_header)
+    f.write(b"\x00" * ((32-1)* 512))
     f.write(kernel)
     remaining = FLOPPY_SIZE - f.tell()
     if remaining > 0:
