@@ -14,9 +14,9 @@ sectors 2-16: file table
 each file table entry = 32B
 
 char name[20];
+char file_type = 0 | 1; (0 = file, 1 = dir)
 short sector_start;
 short sector_count;
-char file_type = 0 | 1; (0 = file, 1 = dir)
 char flags;
 short parent_entry_index;
 int bytes;
