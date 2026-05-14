@@ -71,8 +71,8 @@ stage2_load:
     XOR dl, dl ; choose drive A - the floppy
     ; load code from sector 33 - C0H1S1 in CHS
     XOR ch, ch ; cylinder
-    MOV cl, 16 ; sector
-    MOV dh, 1 ; head
+    MOV cl, 18 ; sector
+    XOR dh, dh ; head
 
     INT 0x13
 

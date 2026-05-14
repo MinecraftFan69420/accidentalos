@@ -26,7 +26,7 @@ with open(IMG_PATH, "wb") as f:
     f.write(boot_sector)
     f.write(default_header)
     f.write(default_file_table)
-    f.seek(33 * 512) # move to sector 33
+    f.seek(17 * 512) # move to sector 17
     f.write(kernel)
     remaining = FLOPPY_SIZE - f.tell()
     if remaining > 0:
