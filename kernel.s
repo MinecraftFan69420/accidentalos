@@ -277,19 +277,32 @@ scroll_up: ; scroll up when cursor reaches bottom line
     ; input: none
     ; output: none
     ; clobber: di
-    PUSH si
 
+    ; preservation
+    PUSH si
+    PUSH ds
+    PUSH es
+
+    MOV ax, VGA_MEM_START
+    MOV ds, ax
+    MOV es, ax
+
+    ; move lines 2-25 to 1-24
     MOV si, 160 ; line 2
     XOR di, di
     MOV cx, 80 * 24
     REP MOVSW
 
+    ; clear last line
     MOV ax, 0x0F20 ; ' ' with white on black
     MOV cx, 80 ; do this 80 times
     REP STOSW
 
+    ; move cursor to start of last line
     MOV di, 160 * 24 ; start of last line
 
+    POP es
+    POP ds
     POP si
 
     RET
