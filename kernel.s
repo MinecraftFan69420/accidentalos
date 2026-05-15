@@ -133,7 +133,10 @@ shutdown: ; done - shutdown
 
 ; HELPERS
 
-print_char: ; print a character in al
+print_char: ; print a character
+    ; inputs: al
+    ; outputs: none
+    ; clobber: none
     PUSH es
     PUSH ax
 
@@ -165,7 +168,10 @@ print_char: ; print a character in al
     POP ax
     RET
 
-newline: ; move to a new line (warning: destroy ax)
+newline: ; move to a new line
+    ; input: none
+    ; output: none
+    ; clobber: ax, dx, cx, di
     MOV ax, di
     XOR dx, dx
     MOV cx, 160
@@ -182,7 +188,10 @@ newline: ; move to a new line (warning: destroy ax)
     CALL scroll_up
     RET
 
-carriage_return: ; move to the start of the line (warning: destroy ax)
+carriage_return: ; move to the start of the line
+    ; input: none
+    ; output: none
+    ; clobber: ax, di
     MOV ax, di
     XOR dx, dx
     MOV cx, 160
@@ -192,8 +201,12 @@ carriage_return: ; move to the start of the line (warning: destroy ax)
 
     RET
 
-backspace:
-    ; Check if we're at the start of video memory
+backspace: ; move the cursor back
+    ; inputs: none
+    ; outputs: none
+    ; clobbers: di
+
+    ; check if we're at the start of video memory
     CMP di, 2
     JBE .L8     ; can't backspace past start
 
@@ -220,7 +233,10 @@ backspace:
     POP es
     RET
 
-error:
+error: ; error
+    ; input: none
+    ; output: none
+    ; clobbers: si
     MOV si, error_msg
 .L9:
     LODSB ; get next char
@@ -235,6 +251,9 @@ error:
     HLT
     JMP .L12
 scroll_up: ; scroll up when cursor reaches bottom line
+    ; input: none
+    ; output: none
+    ; clobber: di
     PUSH si
 
     MOV si, 160 ; line 2
@@ -251,8 +270,10 @@ scroll_up: ; scroll up when cursor reaches bottom line
     POP si
 
     RET
-strcmp: ; compare strings. inputs: si = ptr to string 1, di = ptr to string 2 in data.s
-; return: ax = 1 if equal, ax = 0 if not
+strcmp: ; compare strings. 
+    ; inputs: si = ptr to string 1, di = ptr to string 2 in data.s
+    ; outputs: ax = 1 if equal, ax = 0 if not
+    ; clobbers: si, di
 .L14:
     MOV al, [si]
     MOV bl, [di]
