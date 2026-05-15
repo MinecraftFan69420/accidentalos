@@ -18,7 +18,7 @@
 BITS 16                          ; 16-bit real mode
 ORG 0x0000                       ; loaded at 0x0000 by boot sector
 
-stage2_start:
+stage2_start: ; entry point for stage 2, jumped to by the boot
     CLI
     CLD
 
@@ -27,6 +27,7 @@ stage2_start:
     MOV ds, ax
     MOV es, ax
 
+    ; stack setup
     MOV ax, STACK_SEG ; stack at 0x90000
     MOV ss, ax
     MOV sp, 0xFFFF ; top at 0x9FFFF
@@ -36,10 +37,11 @@ stage2_start:
     JNE error
 
     STI
+    ; set si pointer to the boot message
     MOV si, kernel_boot_msg
-.L2:
-    LODSB ; MOV al, [ds:si], INC si
-    TEST al, al                 
+.L2: ; print before moving on to the terminal
+    LODSB ; load a byte from the message (pointed to by si) into al, then increment si
+    TEST al, al ; check if it's null
     JZ .L4
 
     CMP al, NEWLINE             ; newline
@@ -50,19 +52,19 @@ stage2_start:
 .L3: ; newline
     CALL newline
     JMP .L2 ; continue on with the print loop
-.L4:
+.L4: ; null terminator, move on to terminal
     CALL newline
     JMP terminal_loop
 
-terminal_loop:
-    MOV BYTE [input_len], 0
+terminal_loop: ; main terminal loop
+    MOV BYTE [input_len], 0 ; reset input length
 
     ; print prompt "> "
     MOV al, '>'
     CALL print_char
     MOV al, ' '
     CALL print_char
-.L5:
+.L5: ; keyboard input loop
     XOR ah, ah
     INT 0x16            ; wait for key
     ; AL = ASCII, AH = scan code
@@ -74,7 +76,7 @@ terminal_loop:
     JNZ .L11
     CALL error
 .L11:
-    ; enter
+    ; enter key
     CMP al, CR
     JE .L6
 
@@ -84,16 +86,17 @@ terminal_loop:
     CMP ah, 0x0E
     JE .L7
 
-    ; fail on other unsupported characters
+    ; fallback on other control chars - ignore
     CMP al, 0x20
     JB .L5
 
-    ; normal
+    ; compare input length to 16 - if too long ignore
     XOR bh, bh
     MOV bl, [input_len]
     CMP bl, 16
     JAE .L5
 
+    ; set the input buffer and increment length
     MOV BYTE [input_buffer + bx], al
     INC bl
     MOV [input_len], bl
@@ -102,11 +105,15 @@ terminal_loop:
     CALL print_char ; al already set
     JMP .L5
 
-.L6:
+.L6: ; input finished
+    ; reset length and buffer
     MOV bl, [input_len]
     XOR bh, bh
     MOV BYTE [input_buffer + bx], 0
 
+    ; command processing later
+
+    ; restart the loop
     CALL newline
     JMP terminal_loop
 .L7:
@@ -119,8 +126,10 @@ terminal_loop:
     JB error ; model/view mismatch
     JBE .L5
 
+    ; decrement input length
     DEC bl
     MOV BYTE [input_len], bl
+    ; set null in buffer
     XOR bh, bh
     MOV BYTE [input_buffer + bx], 0
     CALL backspace
@@ -140,19 +149,24 @@ print_char: ; print a character
     PUSH es
     PUSH ax
 
+    ; set es to VGA memory
     MOV ax, VGA_MEM_START
     MOV es, ax
 
     POP ax
 
+    ; write character to VGA mem with white on black
     MOV ah, 0x0F
     MOV WORD [es:di], ax
+    ; increment cursor
     ADD di, 2
 
+    ; set es back
     POP es    
 
     PUSH ax
-    ; update cursor
+
+    ; calculate row and column
     MOV ax, di
     SHR ax, 1          ; byte offset -> character index
     ; div by 80
@@ -160,7 +174,8 @@ print_char: ; print a character
     MOV bx, 80
     DIV bx             ; AX = row, DX = column
 
-    MOV ah, 0x02       ; request: set cursor
+    ; update cursor
+    MOV ah, 0x02       ; cursor update request
     MOV bh, 0
     MOV dh, al         ; row
     MOV dl, dl         ; column (DL = DX low byte)
@@ -172,11 +187,14 @@ newline: ; move to a new line
     ; input: none
     ; output: none
     ; clobber: ax, dx, cx, di
+
+    ; calculate row and column
     MOV ax, di
     XOR dx, dx
     MOV cx, 160
     DIV cx              ; DX = column, AX = row
 
+    ; set column to zero
     SUB di, dx
     ADD di, 160
 
@@ -192,6 +210,8 @@ carriage_return: ; move to the start of the line
     ; input: none
     ; output: none
     ; clobber: ax, di
+
+    ; calculate row/column
     MOV ax, di
     XOR dx, dx
     MOV cx, 160
@@ -212,18 +232,21 @@ backspace: ; move the cursor back
 
     PUSH es
 
+    ; set es to memory
     MOV ax, VGA_MEM_START
     MOV es, ax
 
+    ; write a space to the VGA buffer
     SUB di, 2
     MOV WORD [es:di], 0x0F20
 
+    ; calculate row/column
     MOV ax, di
     SHR ax, 1          ; byte offset -> character index
     XOR dx, dx
     MOV bx, 80
     DIV bx             ; AX = row, DX = column
-
+    ; update cursor
     MOV ah, 0x02       ; request: update cursor
     XOR bh, bh
     MOV dh, al         ; row
@@ -245,7 +268,7 @@ error: ; error
 
     CALL print_char
     JMP .L9
-.L10: ; WOOHOOOOO 10 LOCAL LABELS!!
+.L10:
     CLI
 .L12:
     HLT
@@ -275,25 +298,32 @@ strcmp: ; compare strings.
     ; outputs: ax = 1 if equal, ax = 0 if not
     ; clobbers: si, di
 .L14:
+    ; set al & bl to characters @ si & di
     MOV al, [si]
     MOV bl, [di]
 
+    ; check if equal
     CMP al, bl
     JNE .L15
 
+    ; if finished, then al would be null
     CMP al, 0
     JE .L16
 
+    ; increment si, di and try again
     INC si
     INC di
     JMP .L14
-.L15:
+.L15: ; unequal
+    ; set unequal result
     MOV ax, 0
     RET
-.L16:
+.L16: ; equal
+    ; set equal result
     MOV ax, 1
     RET
 
+; data
 kernel_boot_msg: db "Kernel load done - ready.", 10, 0
 ; test string with newline and carriage return
 error_msg: db "Error, shutdown.", 0
