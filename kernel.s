@@ -51,28 +51,7 @@ stage2_start:
     CALL newline
     JMP .L2 ; continue on with the print loop
 .L4:
-; STRCMP TEST - delete when finished
-    ; test 1: equal
-    PUSH si
-    PUSH di
-    MOV si, test_file_name
-    MOV di, test_str2
-    CALL strcmp
-    POP di
-    POP si
-    CMP ax, 1 ; 1 = equal
-    JE .L17 ; equal path
-    JMP .L18 ; unequal path
-.L17: ; equal path
-    MOV al, 'E'
-    CALL print_char
     CALL newline
-    JMP terminal_loop
-.L18: ; unequal path
-    MOV al, 'U'
-    CALL print_char
-    CALL newline
-; END OF TEST
     JMP terminal_loop
 
 terminal_loop:
@@ -298,7 +277,6 @@ kernel_boot_msg: db "Kernel load done - ready.", 10, 0
 ; test string with newline and carriage return
 error_msg: db "Error, shutdown.", 0
 test_file_name: db "test.bin", 0
-test_str2: db "text.txt", 0 ; for strcmp testing - delete after finish
 input_buffer: times 17 db 0 ; 16 chars + end null
 input_len: db 0
 
