@@ -267,12 +267,11 @@ strcmp: ; compare strings. inputs: si = ptr to string 1, di = ptr to string 2 in
     INC di
     JMP .L14
 .L15:
-    MOV ax, 1
-    RET
-.L16:
     MOV ax, 0
     RET
-
+.L16:
+    MOV ax, 1
+    RET
 
 kernel_boot_msg: db "Kernel load done - ready.", 10, 0
 ; test string with newline and carriage return
