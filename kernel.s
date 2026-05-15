@@ -251,10 +251,33 @@ scroll_up: ; scroll up when cursor reaches bottom line
     POP si
 
     RET
+strcmp: ; compare strings. inputs: si = ptr to string 1, di = ptr to string 2 in data.s
+; return: ax = 1 if equal, ax = 0 if not
+.L14:
+    MOV al, [si]
+    MOV bl, [di]
+
+    CMP al, bl
+    JNE .L15
+
+    CMP al, 0
+    JE .L16
+
+    INC si
+    INC di
+    JMP .L14
+.L15:
+    MOV ax, 1
+    RET
+.L16:
+    MOV ax, 0
+    RET
+
 
 kernel_boot_msg: db "Kernel load done - ready.", 10, 0
 ; test string with newline and carriage return
 error_msg: db "Error, shutdown.", 0
+test_file_name: db "test.bin", 0
 input_buffer: times 17 db 0 ; 16 chars + end null
 input_len: db 0
 
