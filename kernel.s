@@ -336,6 +336,34 @@ strcmp: ; compare strings.
     MOV ax, 1
     RET
 
+load_file: ; load file and store in the range of 0x80000-0x8FFFF
+    ; inputs: si = ptr to filename
+    ; outputs: ax = 0 if fail, ax = 1 if success
+    ; clobbers: ax, bx, cx, dx
+
+    PUSH es ; preserve es
+
+    ; load the file table into kernel data segment (0x1000-0x7BFF)
+    MOV ax, 0x0100
+    MOV es, ax
+    XOR bx, bx
+
+    ; set up registers for INT 0x13
+    MOV ah, 2 ; request: read sectors
+    MOV al, 15 ; 15 sectors to read
+    XOR dl, dl ; from the floppy
+    ; load from sector 2 - C0H0S3 in CHS
+    XOR ch, ch ; cylinder
+    XOR dh, dh ; head
+    MOV cl, 3 ; sector
+
+    INT 0x13
+
+    JC error ; if carry flag set, then error
+
+    POP es
+    RET
+
 ; data
 kernel_boot_msg: db "Kernel load done - ready.", 10, 0
 ; test string with newline and carriage return
