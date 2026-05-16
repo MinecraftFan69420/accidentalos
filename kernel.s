@@ -390,23 +390,45 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
     ; STEP 3: load file into memory
 
     MOV bx, di
-    MOV ax, [bx + 21] ; starting sector
-    ; get sector count (offset 23)
-    MOV dl, BYTE [bx + 23] ; low byte only
+    MOV ax, [bx + 21] ; starting sector as an LBA to prepare for division
+    MOV al, [bx + 23] ; sector count
+
+    ; TEMP: calculate CHS from offset 21 (an LBA value) in ax, will do later
+    ; sector = (LBA % 18) + 1
+    MOV bl, al ; save sector count
+
+    XOR dx, dx
+    MOV bx, 18
+    DIV bx
+
+    MOV cl, dl
+    INC cl
+
+    ; ax = temp
+    ; head & cylinder
+
+    XOR dx, dx
+    MOV bx, 2
+    DIV bx
+
+    MOV dh, dl
+    MOV ch, al
+
+    ; END OF TEMP
 
     ; set destination buffer
     XOR bx, bx
     MOV cx, ax
 
-    MOV ax, 0x8000 
+    MOV ax, FILE_BUFFER
     MOV es, ax
 
     ; prepare for INT 0x13
     MOV ah, 2 ; request: read sectors
-    MOV al, [di + 0x17] ; offset of sectors to read is 23
+    ; al is already sector count
+    ; cl, ch, dh are already CHS values
+    MOV dl, BYTE [bx + 23] ; how many sectors to read
     XOR dl, dl ; from the floppy
-
-    ; TEMP: calculate CHS from offset 21 (an LBA value), will do later
 
     INT 0x13
     JC error
@@ -431,5 +453,6 @@ input_len: db 0
 BACKSPACE: equ 0x08
 NEWLINE: equ 0x0A
 CR: equ 0x0D
+FILE_BUFFER: equ 0x8000
 STACK_SEG: equ 0x9000
 VGA_MEM_START: equ 0xB800

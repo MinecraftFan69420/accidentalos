@@ -67,7 +67,7 @@ stage2_load:
     XOR bx, bx
 
     MOV ah, 2 ; request: read sectors and store in memory
-    MOV al, 1 ; read 1 sector = 512 B
+    MOV al, 2 ; read 2 sectors = 1 KB
     XOR dl, dl ; choose drive A - the floppy
     ; load code from sector 33 - C0H1S1 in CHS
     XOR ch, ch ; cylinder
