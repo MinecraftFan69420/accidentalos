@@ -339,11 +339,14 @@ strcmp: ; compare strings.
 load_file: ; load file and store in the range of 0x80000-0x8FFFF
     ; inputs: si = ptr to filename
     ; outputs: ax = 0 if fail, ax = 1 if success
-    ; clobbers: ax, bx, cx, dx
+    ; clobbers: ax, bx, cx, dx, di
 
     PUSH es ; preserve es
+    PUSH di
+    PUSH si
+    PUSH ds
 
-    ; load the file table into kernel data segment (0x1000-0x7BFF)
+    ; STEP 1: load the file table into kernel data segment (0x1000-0x7BFF)
     MOV ax, 0x0100
     MOV es, ax
     XOR bx, bx
@@ -361,6 +364,58 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
 
     JC error ; if carry flag set, then error
 
+    MOV cx, 240 ; 240 file entries ((15 * 512) / 32)
+    XOR di, di ; di = offset in file table
+.L17: 
+    ; STEP 2: check if file exists
+    ; compare filename to entry
+
+    PUSH si
+    PUSH di
+
+    ; MOV si, si - si already points to filename, so no need to set
+    ; MOV di, di - di contains offset of file table already
+    
+    CALL strcmp
+
+    POP di
+    POP si
+
+    CMP ax, 1
+    JE .L18 ; if strings equal load the file
+
+    ADD di, 32 ; move to next file entry
+    LOOP .L17
+.L18: ; if file name & target are equal
+    ; STEP 3: load file into memory
+
+    MOV bx, di
+    MOV ax, [bx + 21] ; starting sector
+    ; get sector count (offset 23)
+    MOV dl, BYTE [bx + 23] ; low byte only
+
+    ; set destination buffer
+    XOR bx, bx
+    MOV cx, ax
+
+    MOV ax, 0x8000 
+    MOV es, ax
+
+    ; prepare for INT 0x13
+    MOV ah, 2 ; request: read sectors
+    MOV al, [di + 0x17] ; offset of sectors to read is 23
+    XOR dl, dl ; from the floppy
+
+    ; TEMP: calculate CHS from offset 21 (an LBA value), will do later
+
+    INT 0x13
+    JC error
+
+    MOV ax, 1
+.L19: ; finished
+    POP ds
+    POP si
+    POP di
     POP es
     RET
 
