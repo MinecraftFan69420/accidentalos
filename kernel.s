@@ -54,6 +54,28 @@ stage2_start: ; entry point for stage 2, jumped to by the boot
     JMP .L2 ; continue on with the print loop
 .L4: ; null terminator, move on to terminal
     CALL newline
+    ; TEST - load file
+    MOV si, test_file_name
+    CALL load_file
+    CMP ax, 1
+    JNE error
+
+    PUSH ds
+    MOV ax, FILE_BUFFER
+    MOV ds, ax
+    XOR si, si
+
+    MOV cx, 410 ; size of lorem ipsum
+.L20:
+    LODSB
+    TEST al, al
+    JZ .L21
+    CALL print_char
+    LOOP .L20
+.L21:
+    POP ds
+    ; END OF TEST
+    CALL newline
     JMP terminal_loop
 
 terminal_loop: ; main terminal loop
@@ -307,13 +329,13 @@ scroll_up: ; scroll up when cursor reaches bottom line
 
     RET
 strcmp: ; compare strings. 
-    ; inputs: si = ptr to string 1, di = ptr to string 2 in data.s
+    ; inputs: si = ptr to string 1 in DS, di = ptr to string 2 in ES
     ; outputs: ax = 1 if equal, ax = 0 if not
     ; clobbers: si, di
 .L14:
-    ; set al & bl to characters @ si & di
+    ; set al & bl to characters @ si & es:di
     MOV al, [si]
-    MOV bl, [di]
+    MOV bl, [es:di]
 
     ; check if equal
     CMP al, bl
@@ -352,8 +374,8 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
     XOR bx, bx
 
     ; set up registers for INT 0x13
-    MOV ah, 2 ; request: read sectors
-    MOV al, 15 ; 15 sectors to read
+    MOV ah, 0x02 ; request: read sectors
+    MOV al, 15 ; 4 sectors to read
     XOR dl, dl ; from the floppy
     ; load from sector 2 - C0H0S3 in CHS
     XOR ch, ch ; cylinder
@@ -386,17 +408,15 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
 
     ADD di, 32 ; move to next file entry
     LOOP .L17
+
+    MOV ax, 0
+    JMP .L19
 .L18: ; if file name & target are equal
     ; STEP 3: load file into memory
-
-    MOV bx, di
-    MOV ax, [bx + 21] ; starting sector as an LBA to prepare for division
-    MOV al, [bx + 23] ; sector count
+    MOV ax, [es:di + 21] ; starting sector as an LBA to prepare for division
 
     ; TEMP: calculate CHS from offset 21 (an LBA value) in ax, will do later
     ; sector = (LBA % 18) + 1
-    MOV bl, al ; save sector count
-
     XOR dx, dx
     MOV bx, 18
     DIV bx
@@ -413,21 +433,14 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
 
     MOV dh, dl
     MOV ch, al
-
-    ; END OF TEMP
-
     ; set destination buffer
-    XOR bx, bx
-    MOV cx, ax
-
     MOV ax, FILE_BUFFER
     MOV es, ax
-
+    XOR bx, bx
     ; prepare for INT 0x13
     MOV ah, 2 ; request: read sectors
-    ; al is already sector count
+    MOV al, BYTE [di + 23] ; sectors
     ; cl, ch, dh are already CHS values
-    MOV dl, BYTE [bx + 23] ; how many sectors to read
     XOR dl, dl ; from the floppy
 
     INT 0x13
