@@ -19,7 +19,7 @@ short sector_start;
 short sector_count;
 char flags;
 short parent_entry_index;
-int bytes;
+short bytes;
 
 dir-ID 0xFFFF means root
 

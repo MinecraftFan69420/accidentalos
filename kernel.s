@@ -413,7 +413,13 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
     JMP .L19
 .L18: ; if file name & target are equal
     ; STEP 3: load file into memory
-    MOV ax, [es:di + 21] ; starting sector as an LBA to prepare for division
+
+    ; check if file is big
+    MOV ax, WORD [es:di + 30] ; offset of byte size
+    CMP ax, 0
+    JNE .L20
+
+    MOV ax, WORD [es:di + 21] ; starting sector as an LBA to prepare for division
 
     ; TEMP: calculate CHS from offset 21 (an LBA value) in ax, will do later
     ; sector = (LBA % 18) + 1
@@ -453,12 +459,25 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
     POP di
     POP es
     RET
+.L20: ; file too big
+    MOV si, file_too_big_msg
+.L21:
+    LODSB
+    TEST al, al
+    JZ .L22
+
+    CALL print_char
+    JMP .L21
+.L22:
+    XOR ax, ax
+    JMP .L19
 
 ; data
 kernel_boot_msg: db "Kernel load done - ready.", 10, 0
 ; test string with newline and carriage return
 error_msg: db "Error, shutdown.", 0
 test_file_name: db "test.bin", 0
+file_too_big_msg: db "DAMN! Are you writing a novel?!", 0
 input_buffer: times 17 db 0 ; 16 chars + end null
 input_len: db 0
 
