@@ -37,6 +37,9 @@ stage2_start: ; entry point for stage 2, jumped to by the boot
     JNE error
 
     STI
+
+    MOV [VGA_cursor], di ; set the cursor to di (was cursor in boot.s)
+
     ; set si pointer to the boot message
     MOV si, kernel_boot_msg
 .L2: ; print before moving on to the terminal
@@ -147,6 +150,7 @@ print_char: ; print a character
     ; outputs: none
     ; clobber: none
     PUSH es
+
     PUSH ax
 
     ; set es to VGA memory
@@ -157,9 +161,13 @@ print_char: ; print a character
 
     ; write character to VGA mem with white on black
     MOV ah, 0x0F
+
+    MOV di, [VGA_cursor]
+
     MOV WORD [es:di], ax
     ; increment cursor
     ADD di, 2
+    MOV WORD [VGA_cursor], di
 
     ; set es back
     POP es    
@@ -167,7 +175,7 @@ print_char: ; print a character
     PUSH ax
 
     ; calculate row and column
-    MOV ax, di
+    MOV ax, [VGA_cursor]
     SHR ax, 1          ; byte offset -> character index
     ; div by 80
     XOR dx, dx
@@ -178,7 +186,7 @@ print_char: ; print a character
     MOV ah, 0x02       ; cursor update request
     MOV bh, 0
     MOV dh, al         ; row
-    MOV dl, dl         ; column (DL = DX low byte)
+    ; MOV dl, dl       ; column - dl already contains it
     INT 0x10
     POP ax
     RET
@@ -189,6 +197,8 @@ newline: ; move to a new line
     ; clobber: ax, dx, cx, di
 
     ; calculate row and column
+    MOV di, [VGA_cursor]
+
     MOV ax, di
     XOR dx, dx
     MOV cx, 160
@@ -198,7 +208,9 @@ newline: ; move to a new line
     SUB di, dx
     ADD di, 160
 
-    CMP di, 160 * 25 ; past the screen?
+    MOV [VGA_cursor], di
+
+    CMP WORD [VGA_cursor], 160 * 25 ; past the screen?
     JAE .L13
 
     RET
@@ -211,6 +223,8 @@ carriage_return: ; move to the start of the line
     ; output: none
     ; clobber: ax, di
 
+    MOV di, [VGA_cursor]
+
     ; calculate row/column
     MOV ax, di
     XOR dx, dx
@@ -218,6 +232,8 @@ carriage_return: ; move to the start of the line
     DIV cx              ; DX = column, AX = row
 
     SUB di, dx
+
+    MOV [VGA_cursor], di
 
     RET
 
@@ -227,7 +243,7 @@ backspace: ; move the cursor back
     ; clobbers: di
 
     ; check if we're at the start of video memory
-    CMP di, 2
+    CMP WORD [VGA_cursor], 2
     JBE .L8     ; can't backspace past start
 
     PUSH es
@@ -235,6 +251,8 @@ backspace: ; move the cursor back
     ; set es to memory
     MOV ax, VGA_MEM_START
     MOV es, ax
+
+    MOV di, [VGA_cursor]
 
     ; write a space to the VGA buffer
     SUB di, 2
@@ -252,6 +270,8 @@ backspace: ; move the cursor back
     MOV dh, al         ; row
     ; dl contains the column
     INT 0x10
+
+    MOV WORD [VGA_cursor], di
 .L8:
     POP es
     RET
@@ -461,6 +481,7 @@ input_buffer: times 17 db 0 ; 16 chars + end null
 input_len: db 0
 
 ; other data
+VGA_cursor: dw 0
 
 ; CONSTANTS
 BACKSPACE: equ 0x08
