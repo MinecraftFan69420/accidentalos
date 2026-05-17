@@ -398,8 +398,6 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
     JNE .L20
 
     MOV ax, WORD [es:di + 21] ; starting sector as an LBA to prepare for division
-
-    ; TEMP: calculate CHS from offset 21 (an LBA value) in ax, will do later
     ; sector = (LBA % 18) + 1
     XOR dx, dx
     MOV bx, 18
@@ -450,16 +448,21 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
     XOR ax, ax
     JMP .L19
 
-; data
+; DATA
+; strings
 kernel_boot_msg: db "Kernel load done - ready.", 10, 0
 ; test string with newline and carriage return
 error_msg: db "Error, shutdown.", 0
 test_file_name: db "test.txt", 0
 file_too_big_msg: db "DAMN! Are you writing a novel?!", 0
+
+; command prompt data
 input_buffer: times 17 db 0 ; 16 chars + end null
 input_len: db 0
 
-; constants
+; other data
+
+; CONSTANTS
 BACKSPACE: equ 0x08
 NEWLINE: equ 0x0A
 CR: equ 0x0D
