@@ -320,6 +320,8 @@ scroll_up: ; scroll up when cursor reaches bottom line
 
     ; move cursor to start of last line
     MOV di, 160 * 24 ; start of last line
+    
+    MOV WORD [VGA_cursor], di
 
     POP es
     POP ds
