@@ -300,31 +300,51 @@ scroll_up: ; scroll up when cursor reaches bottom line
 
     ; preservation
     PUSH si
-    PUSH ds
     PUSH es
+    PUSH ds
 
     MOV ax, VGA_MEM_START
     MOV ds, ax
     MOV es, ax
 
+    STD
+
     ; move lines 2-25 to 1-24
-    MOV si, 160 ; line 2
-    XOR di, di
+    MOV si, 160 * 25 - 2
+    MOV di, 160 * 24 - 2
     MOV cx, 80 * 24
     REP MOVSW
 
+    CLD
+
     ; clear last line
     MOV ax, 0x0F20 ; ' ' with white on black
+    MOV di, 160 * 24
     MOV cx, 80 ; do this 80 times
     REP STOSW
 
+    ; restore kernel data segment so VGA_cursor is accessed correctly
+    POP ds
+
     ; move cursor to start of last line
     MOV di, 160 * 24 ; start of last line
-    
     MOV WORD [VGA_cursor], di
 
+    ; update cursor
+    MOV ax, [VGA_cursor]
+    SHR ax, 1
+
+    XOR dx, dx
+    MOV bx, 80
+    DIV bx
+
+    MOV ah, 2 ; request: update cursor position
+    XOR bh, bh
+    MOV dh, al
+    ; DL already contains the column
+    INT 0x10
+
     POP es
-    POP ds
     POP si
 
     RET
