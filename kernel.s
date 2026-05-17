@@ -54,28 +54,6 @@ stage2_start: ; entry point for stage 2, jumped to by the boot
     JMP .L2 ; continue on with the print loop
 .L4: ; null terminator, move on to terminal
     CALL newline
-    ; TEST - load file
-    MOV si, test_file_name
-    CALL load_file
-    CMP ax, 1
-    JNE error
-
-    PUSH ds
-    MOV ax, FILE_BUFFER
-    MOV ds, ax
-    XOR si, si
-
-    MOV cx, 410 ; size of lorem ipsum
-.L20:
-    LODSB
-    TEST al, al
-    JZ .L21
-    CALL print_char
-    LOOP .L20
-.L21:
-    POP ds
-    ; END OF TEST
-    CALL newline
     JMP terminal_loop
 
 terminal_loop: ; main terminal loop
@@ -476,7 +454,7 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
 kernel_boot_msg: db "Kernel load done - ready.", 10, 0
 ; test string with newline and carriage return
 error_msg: db "Error, shutdown.", 0
-test_file_name: db "test.bin", 0
+test_file_name: db "test.txt", 0
 file_too_big_msg: db "DAMN! Are you writing a novel?!", 0
 input_buffer: times 17 db 0 ; 16 chars + end null
 input_len: db 0
