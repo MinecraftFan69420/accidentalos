@@ -191,6 +191,32 @@ print_char: ; print a character
     POP ax
     RET
 
+print_string: ; print a null-terminated string by repeatedly using print_char
+    ; input: si = string pointer
+    ; output: nothing
+    ; clobber: 
+
+    LODSB
+    TEST al, al
+    JZ .L23 ; end if null
+
+    CMP al, NEWLINE
+    JE .L24 ; newline
+
+    CMP al, CR
+    JE .L25 ; carriage return
+
+    CALL print_char
+    JMP print_string
+.L24: ; newline
+    CALL newline
+    JMP print_string
+.L25: ; carriage return
+    CALL carriage_return
+    JMP print_string
+.L23: ; null terminator, end
+    RET
+
 newline: ; move to a new line
     ; input: none
     ; output: none
