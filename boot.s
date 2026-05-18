@@ -1,24 +1,5 @@
 ; AccidentalOS - boot sector
-; made by me with a __little__ help from Microsoft Copilot
-; so don't think Copilot created the whole thing
-; just helped me with fixing bugs and adding a few code snippets
-;
-; it's called AccidentalOS cuz it started as an 
-; 8086 VGA hello world i wrote cuz i was bored
-;
-; showed it to MS Copilot and then I somehow got motivated to add more
-; and also realized this 8086 VGA hello world was technically an OS
-;
-; so yeah we accidentally created an operating system - hope u like it
-; and if you do then star it
-
-; usage instructions:
-; 1. assemble the boot with "nasm -f bin boot.s -o boot.bin"
-; 2. assemble the kernel with "nasm -f bin kernel.s -o kernel.bin"
-; 3. run the floppifyer "floppifyer.py"
-; 4. emulate with QEMU
-; qemu-system-i386.exe -drive if=floppy,format=raw,file=accidentalos.img -no-reboot -boot a
-; i know the command might be long but its probably ok
+; the bootloader
 
 BITS 16                          ; 16-bit real mode
 ORG 0x7C00                       ; bootloader

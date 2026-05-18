@@ -1,19 +1,5 @@
-; AccidentalOS - kernel
-; made by me with a __little__ help from Microsoft Copilot
-; so don't think Copilot created the whole thing
-; just helped me with fixing bugs and adding a few code snippets
-;
-; it's called AccidentalOS cuz it started as an 
-; 8086 VGA hello world i wrote cuz i was bored
-;
-; showed it to MS Copilot and then I somehow got motivated to add more
-; and also realized this 8086 VGA hello world was technically an OS
-;
-; so yeah we accidentally created an operating system - hope u like it
-; and if you do then star it
-
-; usage instructions: see boot.s line 15
-; i know the command might be long but its probably ok
+; AccidentalOS - kernel.s
+; the actual kernel
 
 BITS 16                          ; 16-bit real mode
 ORG 0x0000                       ; loaded at 0x0000 by boot sector
