@@ -186,23 +186,23 @@ print_string: ; print a null-terminated string by repeatedly using print_char
 
     LODSB
     TEST al, al
-    JZ .L23 ; end if null
+    JZ .L4 ; end if null
 
     CMP al, NEWLINE
-    JE .L24 ; newline
+    JE .L2 ; newline
 
     CMP al, CR
-    JE .L25 ; carriage return
+    JE .L3 ; carriage return
 
     CALL print_char
     JMP print_string
-.L24: ; newline
+.L2: ; newline
     CALL newline
     JMP print_string
-.L25: ; carriage return
+.L3: ; carriage return
     CALL carriage_return
     JMP print_string
-.L23: ; null terminator, end
+.L4: ; null terminator, end
     RET
 
 newline: ; move to a new line
