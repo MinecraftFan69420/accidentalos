@@ -42,20 +42,8 @@ stage2_start: ; entry point for stage 2, jumped to by the boot
 
     ; set si pointer to the boot message
     MOV si, kernel_boot_msg
-.L2: ; print before moving on to the terminal
-    LODSB ; load a byte from the message (pointed to by si) into al, then increment si
-    TEST al, al ; check if it's null
-    JZ .L4
+    CALL print_string
 
-    CMP al, NEWLINE             ; newline
-    JE .L3
-
-    CALL print_char
-    JMP .L2
-.L3: ; newline
-    CALL newline
-    JMP .L2 ; continue on with the print loop
-.L4: ; null terminator, move on to terminal
     CALL newline
     JMP terminal_loop
 
@@ -307,15 +295,7 @@ error: ; error
     ; output: none
     ; clobbers: si
     MOV si, error_msg
-.L9:
-    LODSB ; get next char
-    TEST al, al ; finished?
-    JZ .L10 ; crash
-
-    CALL print_char
-    JMP .L9
-.L10:
-    CLI
+    CALL print_string
 .L12:
     HLT
     JMP .L12
@@ -505,14 +485,7 @@ load_file: ; load file and store in the range of 0x80000-0x8FFFF
     RET
 .L20: ; file too big
     MOV si, file_too_big_msg
-.L21:
-    LODSB
-    TEST al, al
-    JZ .L22
-
-    CALL print_char
-    JMP .L21
-.L22:
+    CALL print_string
     XOR ax, ax
     JMP .L19
 
