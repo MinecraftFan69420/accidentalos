@@ -147,21 +147,37 @@ print_char: ; print a character
     POP es    
 
     PUSH ax
+    PUSH dx
+    PUSH bx
 
     ; calculate row and column
     MOV ax, [VGA_cursor]
     SHR ax, 1          ; byte offset -> character index
-    ; div by 80
-    XOR dx, dx
-    MOV bx, 80
-    DIV bx             ; AX = row, DX = column
 
-    ; update cursor
-    MOV ah, 0x02       ; cursor update request
-    MOV bh, 0
-    MOV dh, al         ; row
-    ; MOV dl, dl       ; column - dl already contains it
-    INT 0x10
+    MOV bx, ax
+    
+    ; set low byte of cursor
+    MOV dx, 0x3D4
+    MOV al, 0x0F ; cursor low byte register
+    OUT dx, al
+
+    MOV dx, 0x3D5
+    MOV al, bl
+    OUT dx, al ; cursor low byte value
+
+    ; high byte
+
+    MOV dx, 0x3D4
+    MOV al, 0x0E ; cursor high byte register
+    OUT dx, al
+
+    ; send value
+    MOV dx, 0x3D5
+    MOV al, bh
+    OUT dx, al
+
+    POP bx
+    POP dx
     POP ax
     RET
 
