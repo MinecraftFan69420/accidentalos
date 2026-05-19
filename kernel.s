@@ -285,12 +285,7 @@ error: ; error
 .L12:
     HLT
     JMP .L12
-scroll_up: ; scroll up when cursor reaches bottom line
-    ; input: none
-    ; output: none
-    ; clobber: di
-
-    ; preservation
+scroll_up:
     PUSH si
     PUSH es
     PUSH ds
@@ -299,27 +294,25 @@ scroll_up: ; scroll up when cursor reaches bottom line
     MOV ds, ax
     MOV es, ax
 
-    STD
+    CLD
 
-    ; move lines 2-25 to 1-24
-    MOV si, 160 * 25 - 2
-    MOV di, 160 * 24 - 2
+    ; copy lines 2–25 → 1–24
+    MOV si, 160
+    MOV di, 0
     MOV cx, 80 * 24
     REP MOVSW
 
-    CLD
-
     ; clear last line
-    MOV ax, 0x0F20 ; ' ' with white on black
+    MOV ax, 0x0F20
     MOV di, 160 * 24
-    MOV cx, 80 ; do this 80 times
+    MOV cx, 80
     REP STOSW
 
-    ; restore kernel data segment so VGA_cursor is accessed correctly
+    ; restore kernel data segment
     POP ds
 
     ; move cursor to start of last line
-    MOV di, 160 * 24 ; start of last line
+    MOV di, 160 * 24
     MOV WORD [VGA_cursor], di
 
     ; update cursor
@@ -330,15 +323,13 @@ scroll_up: ; scroll up when cursor reaches bottom line
     MOV bx, 80
     DIV bx
 
-    MOV ah, 2 ; request: update cursor position
+    MOV ah, 2
     XOR bh, bh
     MOV dh, al
-    ; DL already contains the column
     INT 0x10
 
     POP es
     POP si
-
     RET
 strcmp: ; compare strings. 
     ; inputs: si = ptr to string 1 in DS, di = ptr to string 2 in ES
